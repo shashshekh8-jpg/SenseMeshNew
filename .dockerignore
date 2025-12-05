@@ -1,0 +1,14 @@
+.git
+.gitignore
+docker-compose.yml
+render.yaml
+vercel.json
+node_modules
+**/node_modules
+venv
+.venv
+__pycache__
+**/*.pyc
+.env
+dist
+build

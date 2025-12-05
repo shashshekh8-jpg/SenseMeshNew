@@ -1,0 +1,14 @@
+numpy==1.26.4
+scikit-learn==1.3.0
+fastapi
+uvicorn
+python-multipart
+torch
+transformers==4.37.2
+pillow
+pydantic
+scipy
+soundfile
+librosa
+python-magic
+requests

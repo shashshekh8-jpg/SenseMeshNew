@@ -1,0 +1,5 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+body { margin: 0; font-family: system-ui, sans-serif; background-color: #0f172a; color: #f1f5f9; }
+.scroll-smooth { scroll-behavior: smooth; }

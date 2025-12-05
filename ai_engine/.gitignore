@@ -1,0 +1,5 @@
+__pycache__
+*.pyc
+.env
+*.wav
+# asl_model.pt is needed here, but usually ignored in git if large
