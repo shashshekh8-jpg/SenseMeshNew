@@ -71,6 +71,7 @@ io.on('connection', (socket) => {
         activeUsers.set(socket.id, u);
         io.emit('network_update', Array.from(activeUsers.entries()));
     });
+
     socket.on('send_message', async (payload) => {
         const { targetSocketId, content, type } = payload;
         const processed = await senseFuseProcess(socket.id, targetSocketId, content, type);
@@ -78,26 +79,46 @@ io.on('connection', (socket) => {
             senderId: socket.id, ...processed, timestamp: new Date().toISOString()
         });
     });
+
     socket.on('analyze_gesture_landmarks', async (landmarks) => {
         try {
             const response = await axios.post(`${AI_URL}/predict_sign`, { landmarks });
             const letter = response.data.gesture;
             if (letter === "..." || letter === "Unknown") return;
+            
+            // Send feedback to the signer
             socket.emit('receive_message', { senderId: 'AI', content: `You signed: ${letter}`, type: 'text' });
+            // Broadcast translation to everyone else
             socket.broadcast.emit('receive_message', { senderId: socket.id, content: `[ASL]: ${letter}`, type: 'text' });
         } catch (e) { console.log("ASL Error"); }
     });
+
     socket.on('analyze_environment', async (audioBase64) => {
         try {
             const response = await axios.post(`${AI_URL}/detect_hazard`, { data_base64: audioBase64 });
-            if (response.data.urgency === 'critical') {
-                io.emit('receive_message', { senderId: 'AI', content: ` ⚠️  HAZARD DETECTED: ${response.data.event.toUpperCase()}`, type: 'hazard' });
-            }
-        } catch (e) {}
+            
+            // --- FIX: ALWAYS REPORT RESULT, EVEN IF SAFE ---
+            const eventName = response.data.event;
+            const isCritical = response.data.urgency === 'critical';
+            
+            const msg = isCritical 
+                ? ` ⚠️ HAZARD DETECTED: ${eventName.toUpperCase()}`
+                : `Scan Complete: Detected '${eventName}' (Safe)`;
+            
+            const type = isCritical ? 'hazard' : 'text';
+            
+            socket.emit('receive_message', { senderId: 'AI', content: msg, type: type });
+            // ----------------------------------------------
+
+        } catch (e) {
+            socket.emit('receive_message', { senderId: 'AI', content: "Scan Failed", type: 'text' });
+        }
     });
+
     socket.on('disconnect', () => {
         activeUsers.delete(socket.id);
         io.emit('network_update', Array.from(activeUsers.entries()));
     });
 });
+
 server.listen(PORT, () => console.log(`Server on ${PORT}`));
